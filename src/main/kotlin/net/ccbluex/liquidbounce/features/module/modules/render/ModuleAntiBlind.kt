@@ -18,6 +18,7 @@
  */
 package net.ccbluex.liquidbounce.features.module.modules.render
 
+import net.ccbluex.liquidbounce.config.types.group.ToggleableValueGroup
 import net.ccbluex.liquidbounce.config.types.list.Tagged
 import net.ccbluex.liquidbounce.features.module.ClientModule
 import net.ccbluex.liquidbounce.features.module.ModuleCategories
@@ -31,13 +32,30 @@ import net.minecraft.world.item.Items
  * Protects you from potentially annoying screen effects that block your view.
  */
 @Suppress("MagicNumber")
-object ModuleAntiBlind : ClientModule("AntiBlind", ModuleCategories.RENDER, aliases = listOf("NoRender")) {
+object ModuleAntiBlind : ClientModule("AntiBlind", ModuleCategories.XTETRADOX, aliases = listOf("NoRender")) {
     /**
      * @see Items.CARVED_PUMPKIN
      * @see Gui.renderCameraOverlays
      */
     @JvmField
     val TEXTURE_PUMPKIN_BLUR: Identifier = Identifier.withDefaultNamespace("textures/misc/pumpkinblur.png")
+
+    init {
+        tree(LowFire)
+    }
+
+    /**
+     * Lowers and shrinks the first-person fire overlay so the flames cover less
+     * of the screen while burning (the "low fire" pack effect), as opposed to
+     * just making it transparent with [fireOpacity]. [scale] shrinks the flames
+     * vertically and [offset] shifts them up/down. Tune both in-game.
+     *
+     * @see net.ccbluex.liquidbounce.injection.mixins.minecraft.render.MixinScreenEffectRenderer
+     */
+    object LowFire : ToggleableValueGroup(this, "LowFire", false) {
+        val scale by float("Scale", 0.5f, 0.1f..1f)
+        val offset by float("Offset", 0f, -1f..1f)
+    }
 
     private val render = multiEnumChoice("DoRender",
         DoRender.ARMOR,

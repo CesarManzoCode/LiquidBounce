@@ -25,7 +25,6 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.ccbluex.liquidbounce.features.module.modules.render.DoRender;
 import net.ccbluex.liquidbounce.features.module.modules.render.ModuleAntiBlind;
-import net.ccbluex.liquidbounce.features.module.modules.render.ModuleLowEffects;
 import net.minecraft.client.renderer.ScreenEffectRenderer;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
@@ -48,7 +47,7 @@ public abstract class MixinScreenEffectRenderer {
     private static void wrapFireRenderer(TextureAtlasSprite sprite, PoseStack.Pose basePose, VertexConsumer builder, Operation<Void> original) {
         ScopedValue.where(FIRE_ALPHA, ModuleAntiBlind.INSTANCE.getFireOpacityPercentage())
             .run(() -> {
-                ModuleLowEffects.LowFire lowFire = ModuleLowEffects.LowFire.INSTANCE;
+                ModuleAntiBlind.LowFire lowFire = ModuleAntiBlind.LowFire.INSTANCE;
                 if (!lowFire.getRunning()) {
                     original.call(sprite, basePose, builder);
                     return;
