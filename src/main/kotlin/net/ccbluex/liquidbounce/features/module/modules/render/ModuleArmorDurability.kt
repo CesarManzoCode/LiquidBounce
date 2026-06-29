@@ -20,6 +20,7 @@ package net.ccbluex.liquidbounce.features.module.modules.render
 
 import net.ccbluex.liquidbounce.event.events.OverlayRenderEvent
 import net.ccbluex.liquidbounce.event.handler
+import net.ccbluex.liquidbounce.features.misc.FriendManager
 import net.ccbluex.liquidbounce.features.module.ClientModule
 import net.ccbluex.liquidbounce.features.module.ModuleCategories
 import net.ccbluex.liquidbounce.render.engine.type.Color4b
@@ -67,6 +68,13 @@ object ModuleArmorDurability :
     private val customColor by color("Color", Color4b.WHITE)
 
     /**
+     * Don't show durability for your friends or scoreboard teammates, to keep the
+     * screen clear and focused on actual enemies.
+     */
+    private val ignoreFriends by boolean("IgnoreFriends", true)
+    private val ignoreTeammates by boolean("IgnoreTeammates", true)
+
+    /**
      * Armor slots paired with their approximate height on the body (as a fraction
      * of the entity height), so each number lines up with its piece.
      */
@@ -87,6 +95,14 @@ object ModuleArmorDurability :
             }
 
             if (target.distanceToSqr(player) > rangeSq) {
+                continue
+            }
+
+            if (ignoreFriends && FriendManager.isFriend(target)) {
+                continue
+            }
+
+            if (ignoreTeammates && player.isAlliedTo(target)) {
                 continue
             }
 
@@ -136,6 +152,10 @@ object ModuleArmorDurability :
      */
     private fun durabilityColor(durability: Int, maxDamage: Int): Color4b {
         val ratio = (durability.toFloat() / maxDamage).coerceIn(0f, 1f)
-        return Color4b((255 * (1f - ratio)).toInt(), (255 * ratio).toInt(), 40)
+
+        // Clean green -> yellow -> red ramp (instead of a muddy mid blend).
+        val red = if (ratio > 0.5f) ((1f - ratio) * 2f * 255f).toInt() else 255
+        val green = if (ratio > 0.5f) 255 else (ratio * 2f * 255f).toInt()
+        return Color4b(red.coerceIn(0, 255), green.coerceIn(0, 255), 0)
     }
 }

@@ -49,6 +49,7 @@ import net.ccbluex.liquidbounce.utils.client.Timer
 import net.ccbluex.liquidbounce.utils.client.notification
 import net.ccbluex.liquidbounce.utils.combat.TargetPriority
 import net.ccbluex.liquidbounce.utils.combat.TargetTracker
+import net.ccbluex.liquidbounce.utils.combat.shouldBeAttacked
 import net.ccbluex.liquidbounce.utils.entity.rotation
 import net.ccbluex.liquidbounce.utils.inventory.InventoryManager
 import net.ccbluex.liquidbounce.utils.render.TargetRenderer
@@ -224,10 +225,14 @@ object ModuleAimbot : ClientModule("Aimbot", ModuleCategories.XTETRADOX, aliases
     }
 
     /**
-     * Returns the locked target if target lock is active, the lock has not
-     * expired yet and the entity is still a valid target. Otherwise the lock is
-     * cleared and `null` is returned, so the aimbot falls back to normal target
-     * selection.
+     * Returns the locked target if target lock is active and the lock has not
+     * expired yet. The lock is intentionally "sticky": it is kept regardless of
+     * FOV and range so the aim does not jump to someone else when the target
+     * strafes behind you or steps just out of reach. It is only released when the
+     * time runs out or the entity stops being a valid enemy (dead, despawned, or
+     * no longer attackable). When it cannot be aimed at right now (out of range,
+     * behind a wall) the lock is still held and aiming simply resumes once the
+     * target is reachable again.
      */
     private fun lockedTargetOrNull(): LivingEntity? {
         if (!lockOnTarget) {
@@ -237,7 +242,7 @@ object ModuleAimbot : ClientModule("Aimbot", ModuleCategories.XTETRADOX, aliases
 
         val entity = lockedTarget ?: return null
 
-        if (System.currentTimeMillis() >= lockExpiryTime || !targetTracker.validate(entity)) {
+        if (System.currentTimeMillis() >= lockExpiryTime || !entity.isAlive || !entity.shouldBeAttacked()) {
             lockedTarget = null
             return null
         }
