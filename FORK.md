@@ -11,6 +11,18 @@ Notas para compilar, publicar y usar este fork con un LiquidLauncher propio.
   El bloqueo se suelta antes si expira el tiempo o el objetivo deja de ser
   válido (muere, sale de rango, etc.). Muestra una notificación al fijar uno nuevo.
 
+- **Aimbot – Whitelist**: sub-grupo `Whitelist` en el módulo *Aimbot* con
+  objetivos a los que el aimbot **nunca** apuntará. Solo afecta al Aimbot (otros
+  módulos de combate siguen igual). Fuentes:
+  - `Usernames`: lista manual de nicks (fiable al 100%).
+  - `AutoTeam`: detecta clan/compañeros automáticamente con señales fiables que
+    el servidor ya manda al cliente (scoreboard team vía `isAlliedTo`, color del
+    nombre, prefijo/tag de clan). **No** usa color de armadura (da falsos
+    positivos entre enemigos). Cada detección automática se anuncia una vez en el
+    chat para que veas a quién detecta y puedas desactivarlo si tu server no es
+    compatible. No existe una "API de clanes" universal: esto funciona en la
+    medida en que el servidor exponga la relación de equipo al cliente.
+
 ## Compilar en local (Fedora)
 
 Requisitos:
