@@ -101,7 +101,11 @@ jobs:
           CI: true
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: ./gradlew build -x test -x detekt
+      # Only CCBlueX uploads nightlies to api.liquidbounce.net. On forks this
+      # step has no NIGHTLY_PASS secret and would fail, so skip it there; the
+      # Build step above still runs and verifies the fork compiles.
       - name: Upload artifact
+        if: ${{ github.repository == 'CCBlueX/LiquidBounce' }}
         env:
           COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
           JDK_VERSION: ${{ needs.extract-versions.outputs.jdk_version }}

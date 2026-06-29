@@ -10,6 +10,9 @@ on:
 
 jobs:
   sync-theme:
+    # Only runs on the upstream repo: forks have no LIQUIDBOUNCE_PAT secret and
+    # no liquidbounce-theme repo to mirror to, so this would always fail.
+    if: ${{ github.repository == 'CCBlueX/LiquidBounce' }}
     runs-on: ubuntu-latest
     
     steps:
