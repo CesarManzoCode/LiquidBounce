@@ -18,6 +18,8 @@
  */
 package net.ccbluex.liquidbounce.features.module.modules.combat
 
+import net.ccbluex.fastutil.enumSetOf
+import net.ccbluex.liquidbounce.config.types.group.ValueGroup
 import net.ccbluex.liquidbounce.config.types.list.Tagged
 import net.ccbluex.liquidbounce.event.events.AttackEntityEvent
 import net.ccbluex.liquidbounce.event.events.MouseRotationEvent
@@ -50,9 +52,11 @@ import net.ccbluex.liquidbounce.utils.combat.TargetTracker
 import net.ccbluex.liquidbounce.utils.entity.rotation
 import net.ccbluex.liquidbounce.utils.inventory.InventoryManager
 import net.ccbluex.liquidbounce.utils.render.TargetRenderer
+import net.ccbluex.liquidbounce.utils.text.stripMinecraftColorCodes
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.LivingEntity
+import net.minecraft.world.entity.player.Player
 
 /**
  * Aimbot module
@@ -67,6 +71,7 @@ object ModuleAimbot : ClientModule("Aimbot", ModuleCategories.COMBAT, aliases = 
 
     init {
         tree(TargetRenderer(this, targetTracker))
+        tree(Whitelist)
     }
     private val pointTracker = tree(PointTracker(this))
 
@@ -97,6 +102,10 @@ object ModuleAimbot : ClientModule("Aimbot", ModuleCategories.COMBAT, aliases = 
 
     private var lockedTarget: LivingEntity? = null
     private var lockExpiryTime = 0L
+
+    // Entity ids already announced as auto-whitelisted, to avoid spamming the
+    // notification every tick. Cleared when the module is disabled.
+    private val notifiedAllies = mutableSetOf<Int>()
 
     private var targetRotation: Rotation? = null
     private var playerRotation: Rotation? = null
@@ -142,6 +151,11 @@ object ModuleAimbot : ClientModule("Aimbot", ModuleCategories.COMBAT, aliases = 
 
         val entity = event.entity as? LivingEntity ?: return@handler
 
+        // Never lock onto a whitelisted entity.
+        if (isWhitelisted(entity)) {
+            return@handler
+        }
+
         if (lockedTarget !== entity) {
             notification(
                 "Aimbot",
@@ -157,6 +171,7 @@ object ModuleAimbot : ClientModule("Aimbot", ModuleCategories.COMBAT, aliases = 
     override fun onDisabled() {
         targetTracker.reset()
         lockedTarget = null
+        notifiedAllies.clear()
     }
 
     @Suppress("unused")
@@ -232,7 +247,8 @@ object ModuleAimbot : ClientModule("Aimbot", ModuleCategories.COMBAT, aliases = 
 
     private fun findNextTargetRotation(): Pair<Entity, RotationWithVector>? {
         val locked = lockedTargetOrNull()
-        val candidates = if (locked != null) listOf(locked) else targetTracker.targets()
+        val candidates = (if (locked != null) listOf(locked) else targetTracker.targets())
+            .filter { !isWhitelisted(it) }
 
         for (entity in candidates) {
             val eyes = player.eyePosition
@@ -256,6 +272,100 @@ object ModuleAimbot : ClientModule("Aimbot", ModuleCategories.COMBAT, aliases = 
 
         targetTracker.reset()
         return null
+    }
+
+    /**
+     * Whether the Aimbot must never aim at [entity]. Manual names are silent
+     * (you typed them yourself); auto-detected allies trigger a one-time
+     * notification so the detection is visible and verifiable.
+     */
+    private fun isWhitelisted(entity: LivingEntity): Boolean {
+        if (isManuallyWhitelisted(entity)) {
+            return true
+        }
+
+        val reason = autoTeamReason(entity) ?: return false
+
+        if (Whitelist.notify && notifiedAllies.add(entity.id)) {
+            notification(
+                "Aimbot",
+                message("whitelisted", entity.name.string, reason.tag),
+                NotificationEvent.Severity.INFO
+            )
+        }
+
+        return true
+    }
+
+    private fun isManuallyWhitelisted(entity: LivingEntity): Boolean =
+        entity is Player && Whitelist.usernames.any { it.equals(entity.gameProfile.name, ignoreCase = true) }
+
+    /**
+     * Returns the first reliable team/clan signal that matches [entity], or null
+     * when auto whitelisting is off or nothing matches.
+     */
+    private fun autoTeamReason(entity: LivingEntity): TeamSource? {
+        if (!Whitelist.autoTeam) {
+            return null
+        }
+
+        return Whitelist.teamSources.firstOrNull { matchesTeamSource(it, entity) }
+    }
+
+    private fun matchesTeamSource(source: TeamSource, entity: LivingEntity): Boolean = when (source) {
+        TeamSource.SCOREBOARD_TEAM -> player.isAlliedTo(entity)
+        TeamSource.NAME_COLOR -> sameNameColor(entity)
+        TeamSource.PREFIX -> samePrefix(entity)
+    }
+
+    private fun sameNameColor(entity: LivingEntity): Boolean {
+        val ownColor = player.displayName?.style?.color ?: return false
+        val otherColor = entity.displayName?.style?.color ?: return false
+        return ownColor == otherColor
+    }
+
+    private fun samePrefix(entity: LivingEntity): Boolean {
+        val ownSplit = player.displayName?.string?.stripMinecraftColorCodes()?.split(" ") ?: return false
+        val otherSplit = entity.displayName?.string?.stripMinecraftColorCodes()?.split(" ") ?: return false
+        return ownSplit.size > 1 && otherSplit.size > 1 && ownSplit[0] == otherSplit[0]
+    }
+
+    /**
+     * Whitelist of entities the Aimbot must never target. Only affects the
+     * Aimbot; other combat modules (e.g. KillAura) are untouched.
+     */
+    private object Whitelist : ValueGroup("Whitelist") {
+
+        /**
+         * Names the Aimbot will never aim at. Fully reliable: you type them.
+         */
+        val usernames by textList("Usernames", mutableListOf<String>())
+
+        /**
+         * Automatically whitelist teammates/clan members. There is no universal
+         * clan API, so this only uses signals the server already exposes to the
+         * client; armor color is intentionally excluded because enemies can wear
+         * the same color. Detections are announced so false positives are visible.
+         */
+        val autoTeam by boolean("AutoTeam", false)
+
+        val teamSources by multiEnumChoice("AutoTeamSources", enumSetOf(TeamSource.SCOREBOARD_TEAM))
+
+        val notify by boolean("Notify", true)
+    }
+
+    /**
+     * Reliable client-side signals to detect a teammate/clan member.
+     */
+    private enum class TeamSource(override val tag: String) : Tagged {
+        /** Vanilla scoreboard team allies. The most reliable signal. */
+        SCOREBOARD_TEAM("ScoreboardTeam"),
+
+        /** Same display-name color (e.g. green allies vs red enemies). */
+        NAME_COLOR("NameColor"),
+
+        /** Same nametag/tab prefix, i.e. the same clan tag (e.g. "[ELITE]"). */
+        PREFIX("Prefix")
     }
 
     private enum class IgnoreOpened(
