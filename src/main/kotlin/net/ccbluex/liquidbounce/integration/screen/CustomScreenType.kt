@@ -60,6 +60,7 @@ enum class CustomScreenType(
     CLICK_GUI("clickgui"),
     ALT_MANAGER("altmanager"),
     PROXY_MANAGER("proxymanager"),
+    DOCS("docs"),
 
     TITLE(
         "title",

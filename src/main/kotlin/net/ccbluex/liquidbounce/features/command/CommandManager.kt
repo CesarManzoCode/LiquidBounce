@@ -33,6 +33,7 @@ import net.ccbluex.liquidbounce.features.command.commands.client.CommandClear
 import net.ccbluex.liquidbounce.features.command.commands.client.CommandConfig
 import net.ccbluex.liquidbounce.features.command.commands.client.CommandDebug
 import net.ccbluex.liquidbounce.features.command.commands.client.CommandFriend
+import net.ccbluex.liquidbounce.features.command.commands.client.CommandDocs
 import net.ccbluex.liquidbounce.features.command.commands.client.CommandHelp
 import net.ccbluex.liquidbounce.features.command.commands.client.CommandHide
 import net.ccbluex.liquidbounce.features.command.commands.client.CommandLocalConfig
@@ -130,6 +131,7 @@ object CommandManager : Collection<Command> by commandSet {
             CommandBind,
             CommandCenter,
             CommandHelp,
+            CommandDocs,
             CommandBinds,
             CommandClear,
             CommandHide,
