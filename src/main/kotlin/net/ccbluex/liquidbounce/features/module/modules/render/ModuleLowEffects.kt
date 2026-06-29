@@ -38,7 +38,7 @@ import net.ccbluex.liquidbounce.features.module.ModuleCategories
  * module only adds what AntiBlind does not: lowering the fire *geometry* and a
  * totem-specific pop removal.
  */
-object ModuleLowEffects : ClientModule("LowEffects", ModuleCategories.RENDER) {
+object ModuleLowEffects : ClientModule("LowEffects", ModuleCategories.XTETRADOX) {
 
     /**
      * Removes the totem of undying "pop" animation (the big spinning totem that

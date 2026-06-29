@@ -48,6 +48,13 @@ object ModuleCategories {
     @JvmField
     val FUN = register(ModuleCategory("Fun"))
 
+    /**
+     * Personal collection category: a single place for the modules used most
+     * often, regardless of their usual category. Purely organisational.
+     */
+    @JvmField
+    val XTETRADOX = register(ModuleCategory("xTetradox"))
+
     @JvmStatic
     val entries: Collection<ModuleCategory> get() = registry.sequencedValues()
 

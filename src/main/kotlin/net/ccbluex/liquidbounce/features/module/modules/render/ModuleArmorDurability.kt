@@ -45,7 +45,7 @@ import net.minecraft.world.phys.Vec3
  * ([sideOffset]) so they do not block your view of the player.
  */
 object ModuleArmorDurability :
-    ClientModule("ArmorDurability", ModuleCategories.RENDER, aliases = listOf("ArmorOverlay")) {
+    ClientModule("ArmorDurability", ModuleCategories.XTETRADOX, aliases = listOf("ArmorOverlay")) {
 
     private val range by float("Range", 32f, 4f..64f, "blocks")
     private val scale by float("Scale", 1f, 0.25f..4f)

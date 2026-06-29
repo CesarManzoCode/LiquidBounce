@@ -63,7 +63,7 @@ import net.minecraft.world.entity.player.Player
  *
  * Automatically faces selected entities around you.
  */
-object ModuleAimbot : ClientModule("Aimbot", ModuleCategories.COMBAT, aliases = listOf("AimAssist", "AutoAim")) {
+object ModuleAimbot : ClientModule("Aimbot", ModuleCategories.XTETRADOX, aliases = listOf("AimAssist", "AutoAim")) {
 
     private val range = float("Range", 4.2f, 1f..8f)
 

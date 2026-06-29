@@ -37,6 +37,14 @@ Notas para compilar, publicar y usar este fork con un LiquidLauncher propio.
   solo la animación del pop del totem (a diferencia de `FloatingItems` de
   AntiBlind, que las quita todas). Pensado para añadir más tweaks fácilmente.
 
+- **Categoría `xTetradox`**: nueva categoría en el ClickGUI/TabGUI (el menú de
+  Shift derecho) que agrupa los módulos de uso frecuente en un solo sitio. De
+  momento contiene **Aimbot**, **AutoClicker**, **ArmorDurability** y
+  **LowEffects**. Como en LiquidBounce cada módulo pertenece a una sola
+  categoría, estos se **mueven** ahí (ya no aparecen en Combat/Render). Es solo
+  organizativo; los ajustes de cada módulo se conservan. Para añadir más,
+  cambia su `ModuleCategories.X` por `ModuleCategories.XTETRADOX`.
+
 ### Nota: cosas que ya existían en AntiBlind
 
 Antes de duplicar: **AntiBlind** ya trae `FireOpacity` (fuego transparente) y
