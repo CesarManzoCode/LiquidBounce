@@ -19,6 +19,7 @@
 package net.ccbluex.liquidbounce.features.module.modules.combat
 
 import net.ccbluex.liquidbounce.config.types.list.Tagged
+import net.ccbluex.liquidbounce.event.events.AttackEntityEvent
 import net.ccbluex.liquidbounce.event.events.MouseRotationEvent
 import net.ccbluex.liquidbounce.event.events.RotationUpdateEvent
 import net.ccbluex.liquidbounce.event.events.WorldRenderEvent
@@ -49,6 +50,7 @@ import net.ccbluex.liquidbounce.utils.inventory.InventoryManager
 import net.ccbluex.liquidbounce.utils.render.TargetRenderer
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen
 import net.minecraft.world.entity.Entity
+import net.minecraft.world.entity.LivingEntity
 
 /**
  * Aimbot module
@@ -83,6 +85,17 @@ object ModuleAimbot : ClientModule("Aimbot", ModuleCategories.COMBAT, aliases = 
 
     private val ignores by multiEnumChoice<IgnoreOpened>("Ignore")
 
+    /**
+     * Target lock: once the player hits an entity, keep aiming at that exact
+     * target for [lockDuration] seconds instead of switching to whoever gets
+     * closest. Useful in crowds where you want to focus a single enemy.
+     */
+    private val lockOnTarget by boolean("LockTarget", false)
+    private val lockDuration by float("LockDuration", 1f, 0.1f..10f, "s")
+
+    private var lockedTarget: LivingEntity? = null
+    private var lockExpiryTime = 0L
+
     private var targetRotation: Rotation? = null
     private var playerRotation: Rotation? = null
 
@@ -116,8 +129,23 @@ object ModuleAimbot : ClientModule("Aimbot", ModuleCategories.COMBAT, aliases = 
         ModuleAutoWeapon.onTarget(targetTracker.target)
     }
 
+    /**
+     * Whenever the player hits an entity, lock onto it for [lockDuration] seconds.
+     */
+    @Suppress("unused")
+    private val attackHandler = handler<AttackEntityEvent> { event ->
+        if (!lockOnTarget) {
+            return@handler
+        }
+
+        val entity = event.entity as? LivingEntity ?: return@handler
+        lockedTarget = entity
+        lockExpiryTime = System.currentTimeMillis() + (lockDuration * 1000f).toLong()
+    }
+
     override fun onDisabled() {
         targetTracker.reset()
+        lockedTarget = null
     }
 
     @Suppress("unused")
@@ -169,8 +197,33 @@ object ModuleAimbot : ClientModule("Aimbot", ModuleCategories.COMBAT, aliases = 
         )
     }
 
+    /**
+     * Returns the locked target if target lock is active, the lock has not
+     * expired yet and the entity is still a valid target. Otherwise the lock is
+     * cleared and `null` is returned, so the aimbot falls back to normal target
+     * selection.
+     */
+    private fun lockedTargetOrNull(): LivingEntity? {
+        if (!lockOnTarget) {
+            lockedTarget = null
+            return null
+        }
+
+        val entity = lockedTarget ?: return null
+
+        if (System.currentTimeMillis() >= lockExpiryTime || !targetTracker.validate(entity)) {
+            lockedTarget = null
+            return null
+        }
+
+        return entity
+    }
+
     private fun findNextTargetRotation(): Pair<Entity, RotationWithVector>? {
-        for (entity in targetTracker.targets()) {
+        val locked = lockedTargetOrNull()
+        val candidates = if (locked != null) listOf(locked) else targetTracker.targets()
+
+        for (entity in candidates) {
             val eyes = player.eyePosition
             val point = pointTracker.findPoint(eyes, entity)
 
