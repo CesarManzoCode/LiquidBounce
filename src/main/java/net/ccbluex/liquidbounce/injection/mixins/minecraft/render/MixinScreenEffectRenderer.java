@@ -25,10 +25,12 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.ccbluex.liquidbounce.features.module.modules.render.DoRender;
 import net.ccbluex.liquidbounce.features.module.modules.render.ModuleAntiBlind;
+import net.ccbluex.liquidbounce.features.module.modules.render.ModuleLowEffects;
 import net.minecraft.client.renderer.ScreenEffectRenderer;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.util.ARGB;
+import org.joml.Matrix4f;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -45,7 +47,24 @@ public abstract class MixinScreenEffectRenderer {
     @WrapMethod(method = "lambda$submitFire$0")
     private static void wrapFireRenderer(TextureAtlasSprite sprite, PoseStack.Pose basePose, VertexConsumer builder, Operation<Void> original) {
         ScopedValue.where(FIRE_ALPHA, ModuleAntiBlind.INSTANCE.getFireOpacityPercentage())
-            .run(() -> original.call(sprite, basePose, builder));
+            .run(() -> {
+                ModuleLowEffects.LowFire lowFire = ModuleLowEffects.LowFire.INSTANCE;
+                if (!lowFire.getRunning()) {
+                    original.call(sprite, basePose, builder);
+                    return;
+                }
+
+                // Lower/shrink the fire overlay geometry, then restore the matrix
+                // so the shared pose is not affected for subsequent draws.
+                float scale = lowFire.getScale();
+                float offset = lowFire.getOffset();
+                Matrix4f matrix = basePose.pose();
+                matrix.translate(0f, offset, 0f);
+                matrix.scale(1f, scale, 1f);
+                original.call(sprite, basePose, builder);
+                matrix.scale(1f, 1f / scale, 1f);
+                matrix.translate(0f, -offset, 0f);
+            });
     }
 
     @ModifyArg(

@@ -209,6 +209,7 @@ import net.ccbluex.liquidbounce.features.module.modules.render.ModuleItemESP
 import net.ccbluex.liquidbounce.features.module.modules.render.ModuleItemTags
 import net.ccbluex.liquidbounce.features.module.modules.render.ModuleJumpEffect
 import net.ccbluex.liquidbounce.features.module.modules.render.ModuleLogoffSpot
+import net.ccbluex.liquidbounce.features.module.modules.render.ModuleLowEffects
 import net.ccbluex.liquidbounce.features.module.modules.render.ModuleMobOwners
 import net.ccbluex.liquidbounce.features.module.modules.render.ModuleNewChunks
 import net.ccbluex.liquidbounce.features.module.modules.render.ModuleNoBob
@@ -633,6 +634,7 @@ object ModuleManager : EventListener, Collection<ClientModule> by modules {
             ModuleParticles,
             ModuleESP,
             ModuleLogoffSpot,
+            ModuleLowEffects,
             ModuleFreeCam,
             ModuleSmoothCamera,
             ModuleFreeLook,

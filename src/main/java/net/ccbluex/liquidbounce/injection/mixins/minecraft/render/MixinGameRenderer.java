@@ -44,6 +44,7 @@ import net.minecraft.client.renderer.fog.FogRenderer;
 import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import org.joml.Matrix4f;
 import org.joml.Matrix4fc;
 import org.objectweb.asm.Opcodes;
@@ -199,6 +200,20 @@ public abstract class MixinGameRenderer {
     @Inject(method = "displayItemActivation", at = @At("HEAD"), cancellable = true)
     private void hookShowFloatingItem(ItemStack floatingItem, CallbackInfo ci) {
         if (!ModuleAntiBlind.canRender(DoRender.FLOATING_ITEMS)) {
+            ci.cancel();
+        }
+    }
+
+    /**
+     * LowEffects "LowTotem": remove only the totem of undying pop animation,
+     * leaving other floating item activations untouched (unlike AntiBlind's
+     * global FloatingItems toggle).
+     */
+    @Inject(method = "displayItemActivation", at = @At("HEAD"), cancellable = true)
+    private void hookLowTotem(ItemStack floatingItem, CallbackInfo ci) {
+        if (ModuleLowEffects.INSTANCE.getRunning()
+            && ModuleLowEffects.INSTANCE.getLowTotem()
+            && floatingItem.is(Items.TOTEM_OF_UNDYING)) {
             ci.cancel();
         }
     }
