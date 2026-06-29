@@ -23,6 +23,26 @@ Notas para compilar, publicar y usar este fork con un LiquidLauncher propio.
     compatible. No existe una "API de clanes" universal: esto funciona en la
     medida en que el servidor exponga la relación de equipo al cliente.
 
+- **ArmorDurability** (alias *ArmorOverlay*, categoría *Render*): muestra la
+  durabilidad de cada pieza de armadura enemiga como un número flotante a la
+  altura de cada parte del cuerpo (offset al lado para no tapar la visión). Misma
+  info que el resource pack de durabilidad, sin Optifine. El cliente conoce esa
+  durabilidad porque el servidor envía el ItemStack completo del equipo. Opciones:
+  `Range`, `Scale`, `SideOffset`, `RoundToTens` (múltiplos de 10), `HideFull`,
+  `ColorByDurability` (verde→rojo) y `Color`.
+
+- **LowEffects** (categoría *Render*): tweaks "low" de PvP en un solo módulo,
+  cada uno toggleable. `LowFire` baja/encoge la geometría de las llamas
+  (`Scale`/`Offset`, distinto del `FireOpacity` de AntiBlind). `LowTotem` quita
+  solo la animación del pop del totem (a diferencia de `FloatingItems` de
+  AntiBlind, que las quita todas). Pensado para añadir más tweaks fácilmente.
+
+### Nota: cosas que ya existían en AntiBlind
+
+Antes de duplicar: **AntiBlind** ya trae `FireOpacity` (fuego transparente) y
+`FloatingItems` (quita la animación del totem y otros item activations). LowEffects
+solo añade lo que faltaba (bajar la geometría del fuego y un low-totem específico).
+
 ## Compilar en local (Fedora)
 
 Requisitos:
