@@ -1,0 +1,110 @@
+name: Release Fork JAR
+
+# Builds the modified LiquidBounce JAR and publishes it as an asset on this
+# fork's GitHub Releases, so a custom LiquidLauncher build can download it
+# instead of the official CCBlueX nightly.
+#
+# This is independent from the official "Build" workflow (build.yml), which
+# uploads to api.liquidbounce.net and only works for CCBlueX. This workflow
+# does not touch that one.
+#
+# Trigger it either by pushing a tag (e.g. `git tag v0.38.1-mine && git push
+# origin v0.38.1-mine`) or manually from the Actions tab via "Run workflow".
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to create (e.g. v0.38.1-mine)'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository and submodules
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - name: Extract JDK version
+        id: jdk
+        run: |
+          set -euo pipefail
+          JDK_VERSION=$(grep '^jdk[[:space:]]*=' gradle/libs.versions.toml | head -n1 | sed -n 's/^[^=]*=[[:space:]]*"\([^"]*\)".*/\1/p')
+          if [ -z "$JDK_VERSION" ]; then
+            echo "[ERROR] could not read jdk version from gradle/libs.versions.toml" >&2
+            exit 1
+          fi
+          echo "version=$JDK_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Cache npm dependencies
+        uses: actions/cache@v5
+        with:
+          path: ~/.npm
+          key: npm-${{ runner.os }}-${{ hashFiles('src-theme/package-lock.json') }}
+          restore-keys: npm-${{ runner.os }}-
+
+      - name: Setting up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: ${{ steps.jdk.outputs.version }}
+
+      - name: Grant permissions to src-theme
+        run: sudo chmod -R 777 src-theme
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Build
+        env:
+          CI: true
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./gradlew build -x test -x detekt
+
+      - name: Locate built jar
+        id: jar
+        run: |
+          set -euo pipefail
+          JAR=$(find build/libs -regex '.*liquidbounce-[0-9.]*\.jar' | head -n1)
+          if [ -z "$JAR" ]; then
+            echo "[ERROR] built jar not found in build/libs" >&2
+            ls -la build/libs || true
+            exit 1
+          fi
+          echo "path=$JAR" >> "$GITHUB_OUTPUT"
+          echo "Built: $JAR"
+
+      - name: Resolve release tag
+        id: tag
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ github.event.inputs.tag }}"
+          else
+            TAG="${GITHUB_REF_NAME}"
+          fi
+          echo "name=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Create or update GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          TAG="${{ steps.tag.outputs.name }}"
+          JAR="${{ steps.jar.outputs.path }}"
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" \
+              --target "$GITHUB_SHA" \
+              --title "$TAG" \
+              --notes "Automated fork build of LiquidBounce ($TAG)."
+          fi
+          gh release upload "$TAG" "$JAR" --clobber
+          echo "Published $JAR to release $TAG"
