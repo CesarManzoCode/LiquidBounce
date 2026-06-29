@@ -9,6 +9,8 @@ permissions:
 
 jobs:
   triage:
+    # CCBlueX-only issue triage. Skipped on forks.
+    if: ${{ github.repository == 'CCBlueX/LiquidBounce' }}
     runs-on: ubuntu-latest
     steps:
       - uses: github/issue-labeler@v3.4

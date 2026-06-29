@@ -11,6 +11,8 @@ permissions:
 
 jobs:
   deploy-pages:
+    # CCBlueX-only: deploys Dokka docs to GitHub Pages. Skipped on forks.
+    if: ${{ github.repository == 'CCBlueX/LiquidBounce' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
